@@ -110,3 +110,6 @@ sca-scan:
     steps:
       - name: Simulate Prod Deploy
         run: echo "Blue/Green Production Deployment"
+      - uses: actions/upload-artifact@v3
+        with:
+          retention-days: 7
