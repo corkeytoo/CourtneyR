@@ -104,3 +104,9 @@ sca-scan:
     steps:
       - name: Run Smoke Tests
         run: npm run test:smoke
+  deploy-prod:
+    runs-on: ubuntu-latest
+    needs: smoke-tests
+    steps:
+      - name: Simulate Prod Deploy
+        run: echo "Blue/Green Production Deployment"
