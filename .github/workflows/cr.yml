@@ -46,3 +46,10 @@ sca-scan:
       with:
         scan-type: fs
         severity: CRITICAL,HIGH
+  unit-tests:
+    runs-on: ubuntu-latest
+    needs: [static-analysis, sca-scan]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run Unit Tests
+        run: npm test
