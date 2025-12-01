@@ -142,3 +142,6 @@ deploy-prod:
         # curl -X POST -H 'Content-type: application/json' \
         #   --data '{"text":"Deployment to production completed successfully."}' \
         #   "$SLACK_WEBHOOK_URL"
+      - uses: actions/upload-artifact@v3
+        with:
+          retention-days: 7
