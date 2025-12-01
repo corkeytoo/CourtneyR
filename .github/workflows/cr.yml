@@ -30,3 +30,9 @@ jobs:
 
       - name: Build application
         run: python setup.py sdist bdist_wheel
+  static-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run ESLint (Example)
+        run: npm install && npm run lint
