@@ -132,7 +132,6 @@ deploy-prod:
     - uses: actions/checkout@v3
     - name: Simulate Prod Deploy
       run: echo "Blue/Green Production Deployment"
-
     - name: Notify Slack (placeholder)
       env:
         SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
