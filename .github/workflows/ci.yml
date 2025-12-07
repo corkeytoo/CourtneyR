@@ -30,117 +30,123 @@ jobs:
 
       - name: Build application
         run: python setup.py sdist bdist_wheel
+
   static-analysis:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - name: Run ESLint (Example)
         run: npm install && npm run lint
-sca-scan:
-  runs-on: ubuntu-latest
-  steps:
-    - uses: actions/checkout@v3
 
-    - name: Run Trivy Dependency Scan
-      uses: aquasecurity/trivy-action@master
-      with:
-        scan-type: fs
-        severity: CRITICAL,HIGH
+  sca-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Run Trivy Dependency Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          severity: CRITICAL,HIGH
+
   unit-tests:
     runs-on: ubuntu-latest
     needs: [static-analysis, sca-scan]
     steps:
       - uses: actions/checkout@v3
+
       - name: Run Unit Tests
         run: npm test
+
   build-artifact:
     runs-on: ubuntu-latest
     needs: unit-tests
     steps:
       - uses: actions/checkout@v3
+
       - name: Build App
         run: npm run build
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
         with:
           name: build-output
           path: ./dist
+
   container-build:
     runs-on: ubuntu-latest
     needs: build-artifact
     steps:
       - uses: actions/checkout@v3
+
       - name: Build Docker Image
         run: docker build -t app:latest .
+
       - name: Scan Image
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: app:latest
+
   integration-tests:
     runs-on: ubuntu-latest
     needs: container-build
     steps:
       - uses: actions/checkout@v3
+
       - name: Run Integration Tests
         run: npm run test:integration
+
   dast-scan:
     runs-on: ubuntu-latest
     needs: integration-tests
     steps:
       - uses: actions/checkout@v3
+
       - name: Run OWASP ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.7.0
         with:
           target: "http://example.com"
+
   deploy-staging:
     runs-on: ubuntu-latest
     needs: dast-scan
     steps:
       - name: Simulate Deployment
         run: echo "Deploying to staging..."
+
   smoke-tests:
     runs-on: ubuntu-latest
     needs: deploy-staging
     steps:
       - name: Run Smoke Tests
         run: npm run test:smoke
-deploy-prod:
-  runs-on: ubuntu-latest
-  needs: smoke-tests
-  environment:
-    name: production
-    url: https://example.com   # optional, can be fake for the assignment
-  steps:
-    - uses: actions/checkout@v3
-    - name: Simulate Prod Deploy
-      run: echo "Blue/Green Production Deployment"
+
   deploy-prod:
     runs-on: ubuntu-latest
     needs: smoke-tests
+    environment:
+      name: production
+      url: https://example.com   # optional, can be fake for the assignment
     steps:
+      - uses: actions/checkout@v3
+
       - name: Simulate Prod Deploy
         run: echo "Blue/Green Production Deployment"
-      - uses: actions/upload-artifact@v3
+
+      - name: Notify Slack (placeholder)
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          echo "Slack notification would be sent here."
+          # Example (commented out for safety):
+          # curl -X POST -H 'Content-type: application/json' \
+          #   --data '{"text":"Deployment to production completed successfully."}' \
+          #   "$SLACK_WEBHOOK_URL"
+
+      - name: Upload artifact (logs or build)
+        uses: actions/upload-artifact@v3
         with:
-          retention-days: 7
-deploy-prod:
-  runs-on: ubuntu-latest
-  needs: smoke-tests
-  environment:
-    name: production
-  steps:
-    - uses: actions/checkout@v3
-    - name: Simulate Prod Deploy
-      run: echo "Blue/Green Production Deployment"
-    - name: Notify Slack (placeholder)
-      env:
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-      run: |
-        echo "Slack notification would be sent here."
-        # Example (commented out for safety):
-        # curl -X POST -H 'Content-type: application/json' \
-        #   --data '{"text":"Deployment to production completed successfully."}' \
-        #   "$SLACK_WEBHOOK_URL"
-      - uses: actions/upload-artifact@v3
-        with:
+          name: prod-deploy-artifacts
+          path: .
           retention-days: 7
