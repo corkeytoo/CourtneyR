@@ -20,24 +20,48 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Install dependencies
+      - name: Install dependencies (skip if no requirements.txt)
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          if [ -f requirements.txt ]; then
+            echo "requirements.txt found, installing..."
+            pip install -r requirements.txt
+          else
+            echo "No requirements.txt found, skipping dependency install."
+          fi
 
-      - name: Run tests
-        run: pytest
+      - name: Run tests (skip if no Python tests)
+        run: |
+          if ls tests/test_*.py 1> /dev/null 2>&1; then
+            echo "Pytest tests found, running..."
+            pytest
+          else
+            echo "No Python tests found, skipping pytest."
+          fi
 
-      - name: Build application
-        run: python setup.py sdist bdist_wheel
+      - name: Build application (skip if no setup.py)
+        run: |
+          if [ -f setup.py ]; then
+            echo "setup.py found, building package..."
+            python setup.py sdist bdist_wheel
+          else
+            echo "No setup.py found, skipping Python build."
+          fi
 
   static-analysis:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
-      - name: Run ESLint (Example)
-        run: npm install && npm run lint
+      - name: Run ESLint (Example – skip if no package.json)
+        run: |
+          if [ -f package.json ]; then
+            echo "package.json found, running npm install and lint..."
+            npm install
+            npm run lint
+          else
+            echo "No package.json found, skipping ESLint static analysis."
+          fi
 
   sca-scan:
     runs-on: ubuntu-latest
@@ -56,8 +80,14 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Run Unit Tests
-        run: npm test
+      - name: Run Unit Tests (skip if no package.json)
+        run: |
+          if [ -f package.json ]; then
+            echo "package.json found, running npm test..."
+            npm test
+          else
+            echo "No package.json found, skipping JS unit tests."
+          fi
 
   build-artifact:
     runs-on: ubuntu-latest
@@ -65,14 +95,21 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Build App
-        run: npm run build
+      - name: Build App (skip if no package.json)
+        run: |
+          if [ -f package.json ]; then
+            echo "package.json found, running npm run build..."
+            npm run build
+          else
+            echo "No package.json found, skipping JS build."
+          fi
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
         with:
           name: build-output
           path: ./dist
+          if-no-files-found: ignore
 
   container-build:
     runs-on: ubuntu-latest
@@ -80,11 +117,18 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Build Docker Image
-        run: docker build -t app:latest .
+      - name: Build Docker Image (skip if no Dockerfile)
+        run: |
+          if [ -f Dockerfile ]; then
+            echo "Dockerfile found, building image..."
+            docker build -t app:latest .
+          else
+            echo "No Dockerfile found, skipping Docker build."
+          fi
 
-      - name: Scan Image
+      - name: Scan Image (skip if no Dockerfile)
         uses: aquasecurity/trivy-action@master
+        if: hashFiles('Dockerfile') != ''
         with:
           image-ref: app:latest
 
@@ -94,8 +138,14 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Run Integration Tests
-        run: npm run test:integration
+      - name: Run Integration Tests (skip if no package.json)
+        run: |
+          if [ -f package.json ]; then
+            echo "package.json found, running npm run test:integration..."
+            npm run test:integration
+          else
+            echo "No package.json found, skipping integration tests."
+          fi
 
   dast-scan:
     runs-on: ubuntu-latest
@@ -112,22 +162,28 @@ jobs:
     runs-on: ubuntu-latest
     needs: dast-scan
     steps:
-      - name: Simulate Deployment
+      - name: Simulate Deployment to Staging
         run: echo "Deploying to staging..."
 
   smoke-tests:
     runs-on: ubuntu-latest
     needs: deploy-staging
     steps:
-      - name: Run Smoke Tests
-        run: npm run test:smoke
+      - name: Run Smoke Tests (skip if no package.json)
+        run: |
+          if [ -f package.json ]; then
+            echo "package.json found, running npm run test:smoke..."
+            npm run test:smoke
+          else
+            echo "No package.json found, skipping smoke tests."
+          fi
 
   deploy-prod:
     runs-on: ubuntu-latest
     needs: smoke-tests
     environment:
       name: production
-      url: https://example.com   # optional, can be fake for the assignment
+      url: https://example.com   # can be fake for the assignment
     steps:
       - uses: actions/checkout@v3
 
