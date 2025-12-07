@@ -1,6 +1,6 @@
 hello.py
 def main():
-    print("Hello, world!")
+    print("Hello DevSecOps CI/CD")
 
 if __name__ == "__main__":
     main()
